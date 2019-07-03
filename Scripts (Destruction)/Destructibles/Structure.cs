@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace SHUDRS.Destructibles  {
+namespace SHUDRS.Destructibles {
 
 	///  Structure is a biggest possible Destructible. In consists of Constructions, which consist of Elements,
 	/// which are made of Fragments, and all this sh*t is connected, and we have access to connection data so
 	/// we can perform beautiful integrity checks. Nothing's really hard, is it? :D
 	[RequireComponent(typeof(FragmentationSettings))]
-	public class Structure : MonoBehaviour, IDestructible, IRootDestructible  {
+	public class Structure : MonoBehaviour, IDestructible, IRootDestructible {
 
 		/// Array of our child Constructions.
 		public Construction[] constructions;
@@ -52,7 +52,7 @@ namespace SHUDRS.Destructibles  {
 		/// Internal bool to store condition when we do not need, can't or not allowed to calculate stability
 		/// values and check stability. 
 		/// If you want to disable stability checks, set 'stabilityEdgeValue' <= 0.
-		public bool noNeedToCheckStability  { get; private set; }
+		public bool noNeedToCheckStability { get; private set; }
 
 		/// Render mass and support points and gizmos for debug purposes?
 		public bool showStabilityGizmos = true;
@@ -61,11 +61,11 @@ namespace SHUDRS.Destructibles  {
 		protected float lastMagnitude;
 
 		/// Absolute delta between lastMagnitude and current magnitude.
-		public float deltaMagnitude  { get; set; }
+		public float deltaMagnitude { get; set; }
 
 
 		///  Use this for initialization.
-		public void Initialize()  {
+		public void Initialize() {
 
 			/// Get rid of Constructions' scripts.
 			/// Elements and fragments will be cleaned up automatically.
@@ -73,11 +73,11 @@ namespace SHUDRS.Destructibles  {
 
 			/// Add Construction script to children and initialize them (again, order of operations is critical).
 			Construction tconstr;
-			for(int i = 0; i < transform.childCount; i++)  {
+			for (int i = 0; i < transform.childCount; i++) {
 				tconstr = transform.GetChild(i).gameObject.AddComponent<StructConstruction>();
 				tconstr.InitCreateScripts();
 			}
-			for(int i = 0; i < transform.childCount; i++)  {
+			for (int i = 0; i < transform.childCount; i++) {
 				tconstr = transform.GetChild(i).GetComponent<StructConstruction>();
 				tconstr.structure = this;
 				tconstr.index = i;
@@ -87,30 +87,33 @@ namespace SHUDRS.Destructibles  {
 			/// Get array of our constructions and get initial connections.
 			constructions = GetComponentsInChildren<Construction>();
 			len = constructions.Length;
-			#if UNITY_EDITOR
-			if(len > 100)
+#if UNITY_EDITOR
+			if (len > 100) {
 				Debug.LogWarning(
-					"Structure "+this.name+" has more than 100 constructions.\n" +
+					"Structure " + this.name + " has more than 100 constructions.\n" +
 					"Note that extremely big structures may lead to performance issues."
 				);
-			#endif
+			}
+#endif
 
-			if(groundConstructions == null)
+			if (groundConstructions == null) {
 				groundConstructions = new List<Construction>();
-			else
+			} else {
 				groundConstructions.Clear();
+			}
 
 			/// Take connection data into adjacency matrix.
 			adjMatrix = new AdjacencyMatrix(len);
-			for(int i = 0; i < len; i++)  {
-				for(int j = 0; j < constructions[i].len; j++)  {
+			for (int i = 0; i < len; i++) {
+				for (int j = 0; j < constructions[i].len; j++) {
 					constructions[i].elements[j].connections.ForEach(c => {
-						if(c.fragment1.element.construction != c.fragment2.element.construction)
+						if (c.fragment1.element.construction != c.fragment2.element.construction) {
 							adjMatrix[c.fragment1.element.construction.index, c.fragment2.element.construction.index] = true;
+						}
 					});
 				}
 
-				if(constructions[i].groundElements != null && constructions[i].groundElements.Count > 0)  {
+				if (constructions[i].groundElements != null && constructions[i].groundElements.Count > 0) {
 					groundConstructions.Add(constructions[i]);
 				}
 			}
@@ -127,32 +130,34 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Use this for re-initialization.
-		public void Reinitialize()  {
+		public void Reinitialize() {
 
 			/// Get child elements array.
 			constructions = GetComponentsInChildren<Construction>();
 			len = constructions.Length;
-			if(groundConstructions == null)
+			if (groundConstructions == null) {
 				groundConstructions = new List<Construction>();
-			else
+			} else {
 				groundConstructions.Clear();
+			}
 
-			for(int i = 0; i < len; i++)  {
+			for (int i = 0; i < len; i++) {
 				constructions[i].structure = this;
 				constructions[i].index = i;
 			}
 
 			adjMatrix = new AdjacencyMatrix(len);
 			/// Re-take info...
-			for(int i = 0; i < len; i++)  {
-				for(int j = 0; j < constructions[i].len; j++)  {
+			for (int i = 0; i < len; i++) {
+				for (int j = 0; j < constructions[i].len; j++) {
 					constructions[i].elements[j].connections.ForEach(c => {
-						if(c.fragment1.element.construction != c.fragment2.element.construction)
+						if (c.fragment1.element.construction != c.fragment2.element.construction) {
 							adjMatrix[c.fragment1.element.construction.index, c.fragment2.element.construction.index] = true;
+						}
 					});
 				}
 
-				if(constructions[i].groundElements != null && constructions[i].groundElements.Count > 0)  {
+				if (constructions[i].groundElements != null && constructions[i].groundElements.Count > 0) {
 					groundConstructions.Add(constructions[i]);
 				}
 			}
@@ -163,12 +168,12 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Cleans up all script stuff from constructions, elements and fragments.
-		public void Cleanup()  {
+		public void Cleanup() {
 
-			for(int i = 0; i < transform.childCount; i++)  {
-				
-				if(transform.GetChild(i).GetComponent<Construction>())  {
-					
+			for (int i = 0; i < transform.childCount; i++) {
+
+				if (transform.GetChild(i).GetComponent<Construction>()) {
+
 					transform.GetChild(i).GetComponent<Construction>().Cleanup();
 					DestroyImmediate(transform.GetChild(i).GetComponent<Construction>());
 
@@ -182,17 +187,17 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Adds this Structure to Update event at the start of lifetime.
-		public void Start()  {
-			
+		public void Start() {
+
 			TimeManager.UpdateStructures += UpdateStructure;
 
 		}
 
 
 		///  Calculates delta and last velocity every physical frame.
-		public void FixedUpdate()  {
+		public void FixedUpdate() {
 
-			if(rb != null)  {
+			if (rb != null) {
 				deltaMagnitude = Mathf.Abs(rb.velocity.sqrMagnitude - lastMagnitude);
 				lastMagnitude = rb.velocity.sqrMagnitude;
 			}
@@ -200,19 +205,40 @@ namespace SHUDRS.Destructibles  {
 		}
 
 
+		///  Since we cannot track collisions in particular Fragments (because of dumb PhysX manners...),
+		/// and all collisions are tracked by object who has Rigidbody (not colliders),
+		/// this method is needed to distribute collision events between Fragments.
+		public void OnCollisionEnter(Collision col) {
+
+			/// Make a list of all our colliders that were being touched.
+			List<Collider> frags = new List<Collider>();
+			foreach (ContactPoint point in col.contacts) {
+				if (!frags.Contains(point.thisCollider)) {
+					frags.Add(point.thisCollider);
+				}
+			}
+			for (int i = 0; i < frags.Count; i++) {
+				if (frags[i].GetComponent<Fragment>()) {
+					frags[i].GetComponent<Fragment>().OnCollisionInRoot(col);
+				}
+			}
+
+		}
+
+
 		///  Removes this Structure from Update event at the end of lifetime.
-		public void OnDestroy()  {
-			
+		public void OnDestroy() {
+
 			TimeManager.UpdateStructures -= UpdateStructure;
 
 		}
 
 
 		///  For debug purposes.
-		public void ShowAdjacencyMatrix()  {
+		public void ShowAdjacencyMatrix() {
 			string s = "";
-			for(int i = 0; i < len; i++)  {
-				for(int j = 0; j < len; j++)  {
+			for (int i = 0; i < len; i++) {
+				for (int j = 0; j < len; j++) {
 					s += string.Format(" {0}", System.Convert.ToByte(adjMatrix[i, j]));
 				}
 				s += "\n";
@@ -222,11 +248,13 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Is subscribed to an event and executes in the LateUpdate (delayed to frame 3).
-		public void UpdateStructure()  {
+		public void UpdateStructure() {
 
-			if(connectionsFlag)  {
-				if(checkWaiter != null)
+			if (connectionsFlag) {
+				if (checkWaiter != null) {
 					StopCoroutine(checkWaiter);
+				}
+
 				checkWaiter = StartCoroutine(StartCheckWaiter());
 			}
 
@@ -234,7 +262,7 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  A coroutine that will wait one frame before integrity check execution.
-		public IEnumerator StartCheckWaiter()  {
+		public IEnumerator StartCheckWaiter() {
 
 			/// This will suspend the execution for one frame.
 			yield return null;
@@ -246,11 +274,12 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  General entry point for checking existing connection groups of Constructions.
-		private void CheckConnectionsInStructure()  {
+		private void CheckConnectionsInStructure() {
 
 			/// Some clean-up.
-			if(GetComponentsInChildren<Construction>().Length == 0)
+			if (GetComponentsInChildren<Construction>().Length == 0) {
 				Destroy(this.gameObject);
+			}
 
 			/// Refresh data.
 			Reinitialize();
@@ -265,33 +294,35 @@ namespace SHUDRS.Destructibles  {
 			bool firstTime = true;
 
 			/// If we're grounded (not divided in the air)...
-			if(groundConstructions != null)  {
+			if (groundConstructions != null) {
 				/// We are trying to visit all elements from grounded ones.
-				for(int i = 0; i < groundConstructions.Count; i++)  {
+				for (int i = 0; i < groundConstructions.Count; i++) {
 					isTempVisited = new bool[len];
 
 					/// If groundConstruction was not visited in previous iterations...
-					if(!isVisited[groundConstructions[i].index])
+					if (!isVisited[groundConstructions[i].index]) {
 						CheckConnections(groundConstructions[i].index);
-					
+					}
+
 					allAreVisited = true;
 					someoneWasVisited = false;
-					for(int j = 0; j < len; j++)  {
-						allAreVisited &= isVisited[j]; 
+					for (int j = 0; j < len; j++) {
+						allAreVisited &= isVisited[j];
 						someoneWasVisited |= isTempVisited[j];
 					}
 
-					if(allAreVisited)  {
+					if (allAreVisited) {
 
 						/// Some clean-ups.
-						if(GetComponentsInChildren<Construction>().Length == 0)
+						if (GetComponentsInChildren<Construction>().Length == 0) {
 							Destroy(this.gameObject);
+						}
 
 						/// If firstTime, nothing really happens, Structure is still whole
 						/// and we don't need to change anything. In other cases, re-initialize (for safety).
-						if(!firstTime)  {
+						if (!firstTime) {
 							Reinitialize();
-							if(groundConstructions == null || groundConstructions.Count == 0)  {
+							if (groundConstructions == null || groundConstructions.Count == 0) {
 								rb.isKinematic = false;
 								rb.WakeUp();
 							}
@@ -299,11 +330,10 @@ namespace SHUDRS.Destructibles  {
 						rb.ResetCenterOfMass();
 						return;
 
-					}
-					else  {
+					} else {
 						/// There may be cases when we didn't fire CheckConnections() method above,
 						/// but still getting there, so we check if there was graph bypass.
-						if(someoneWasVisited)  {
+						if (someoneWasVisited) {
 							/// Create new grounded Structure with founded elements.
 							newStructure = new GameObject(
 								"New Structure", typeof(Structure), typeof(Rigidbody)
@@ -311,21 +341,22 @@ namespace SHUDRS.Destructibles  {
 
 							/// Because it's better to change hierarchy as little as we can.
 							int cnt = 0;
-							for(int a = 0; a < len; a++)  {
-								if(isTempVisited[a])
+							for (int a = 0; a < len; a++) {
+								if (isTempVisited[a]) {
 									cnt++;
+								}
 							}
-							if(cnt > len * 0.5f)  {
-								for(int a = 0; a < len; a++)  {
-									if(!(isVisited[i] ^ isTempVisited[i]))  {
+							if (cnt > len * 0.5f) {
+								for (int a = 0; a < len; a++) {
+									if (!(isVisited[i] ^ isTempVisited[i])) {
 										isVisited[a] = !isVisited[a];
 										isTempVisited[a] = !isTempVisited[a];
 									}
 								}
 							}
 
-							for(int k = 0; k < len; k++)  {
-								if(isTempVisited[k])  {
+							for (int k = 0; k < len; k++) {
+								if (isTempVisited[k]) {
 									constructions[k].transform.SetParent(newStructure);
 									constructions[k].transform.SetAsLastSibling();
 								}
@@ -333,14 +364,13 @@ namespace SHUDRS.Destructibles  {
 							newStructScript = newStructure.GetComponent<Structure>();
 							newStructScript.rb = newStructure.GetComponent<Rigidbody>();
 							newStructScript.Reinitialize();
-							if(
-								newStructScript.groundConstructions == null || 
+							if (
+								newStructScript.groundConstructions == null ||
 								newStructScript.groundConstructions.Count == 0
-							)  {
+							) {
 								newStructScript.rb.isKinematic = false;
 								newStructScript.rb.WakeUp();
-							}
-							else  {
+							} else {
 								newStructScript.rb.isKinematic = true;
 							}
 							newStructScript.rb.ResetCenterOfMass();
@@ -353,8 +383,8 @@ namespace SHUDRS.Destructibles  {
 
 			/// Note: we came here only if there are remaining spare Constructions w/o ground points.
 			/// Now we check remaining Constructions (which we didn't find going from ground points).
-			for(int i = 0; i < len; i++)  {
-				if(!isVisited[i])  {
+			for (int i = 0; i < len; i++) {
+				if (!isVisited[i]) {
 					/// Found another spare Construction. Check its connections:
 					isTempVisited = new bool[len];
 					CheckConnections(constructions[i].index);
@@ -362,26 +392,25 @@ namespace SHUDRS.Destructibles  {
 					/// After graph bypassing:
 					allAreVisited = true;
 					someoneWasVisited = false;
-					for(int j = 0; j < len; j++)  {
-						allAreVisited &= isVisited[j]; 
+					for (int j = 0; j < len; j++) {
+						allAreVisited &= isVisited[j];
 						someoneWasVisited |= isTempVisited[j];
 					}
-					if(allAreVisited)  {
+					if (allAreVisited) {
 						/// Maybe this condition is not needed... Just in case, okay?
-						if(someoneWasVisited)  {
+						if (someoneWasVisited) {
 							/// Re-new this Structure (because these elements were the last ones).
 							Reinitialize();
-							if(groundConstructions == null || groundConstructions.Count == 0)  {
+							if (groundConstructions == null || groundConstructions.Count == 0) {
 								rb.isKinematic = false;
 								rb.WakeUp();
 							}
 							rb.ResetCenterOfMass();
 						}
 						break;
-					}
-					else  {
+					} else {
 						/// And this also... But let it be, let it be~...
-						if(someoneWasVisited)  {
+						if (someoneWasVisited) {
 							/// Someone's remaining; after creating a Structure, search again.
 							newStructure = new GameObject(
 								"New Structure", typeof(Structure), typeof(Rigidbody)
@@ -389,21 +418,22 @@ namespace SHUDRS.Destructibles  {
 
 							/// Because it's better to change hierarchy as little as we can.
 							int cnt = 0;
-							for(int a = 0; a < len; a++)  {
-								if(isTempVisited[a])
+							for (int a = 0; a < len; a++) {
+								if (isTempVisited[a]) {
 									cnt++;
+								}
 							}
-							if(cnt > len * 0.5f)  {
-								for(int a = 0; a < len; a++)  {
-									if(!(isVisited[i] ^ isTempVisited[i]))  {
+							if (cnt > len * 0.5f) {
+								for (int a = 0; a < len; a++) {
+									if (!(isVisited[i] ^ isTempVisited[i])) {
 										isVisited[a] = !isVisited[a];
 										isTempVisited[a] = !isTempVisited[a];
 									}
 								}
 							}
 
-							for(int k = 0; k < len; k++)  {
-								if(isTempVisited[k])  {
+							for (int k = 0; k < len; k++) {
+								if (isTempVisited[k]) {
 									constructions[k].transform.SetParent(newStructure);
 									constructions[k].transform.SetAsLastSibling();
 								}
@@ -422,19 +452,22 @@ namespace SHUDRS.Destructibles  {
 			}
 
 			/// Some clean-ups.
-			if(GetComponentsInChildren<Construction>().Length == 0)
+			if (GetComponentsInChildren<Construction>().Length == 0) {
 				Destroy(this.gameObject);
-
+			}
 		}
 
 
 		///  Tries to recursively visit all Structures from 'start' using connections matrix.
-		private void CheckConnections(int start)  {
+		private void CheckConnections(int start) {
 
 			isVisited[start] = true;
 			isTempVisited[start] = true;
-			for(int i = 0; i < len; i++)  {
-				if(adjMatrix[start, i] && !isVisited[i])  {
+			for (int i = 0; i < len; i++) {
+				if (adjMatrix[start, i] == null) {
+					Debug.LogWarning(this.name + " Structure.CheckConnections: adjMatrix element is null.");
+				}
+				if (adjMatrix[start, i].Value && !isVisited[i]) {
 					CheckConnections(i);
 				}
 			}
@@ -444,10 +477,10 @@ namespace SHUDRS.Destructibles  {
 
 		///  User entry point. Removes all connection data, so Structure turns in a rigid 'house of cards'.
 		/// (can be accessed thorugh interface)
-		public void TurnIntoDestructibleWithoutConnections()  {
+		public void TurnIntoDestructibleWithoutConnections() {
 
-			for(int i = 0; i < len; i++)  {
-				for(int j = 0; j < constructions[i].len; j++)  {
+			for (int i = 0; i < len; i++) {
+				for (int j = 0; j < constructions[i].len; j++) {
 					constructions[i].elements[j].connections = null;
 					constructions[i].elements[j].connectionsFlag = true;
 				}
@@ -460,10 +493,10 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Sums all mass point positions of our Constructions and divides the sum by a Construction count.
-		public void CalculateStabilityTransform()  {
+		public void CalculateStabilityTransform() {
 
 			Vector3 point = new Vector3();
-			for(int i = 0; i < len; i++)  {
+			for (int i = 0; i < len; i++) {
 				point += constructions[i].massPoint;
 			}
 			point /= len;
@@ -473,11 +506,11 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Sums all support point positions of our Constructions and divides the sum by a Construction count.
-		public void CalculateSupportCenter()  {
+		public void CalculateSupportCenter() {
 
 			Vector3 point = new Vector3();
 
-			for(int i = 0; i < groundConstructions.Count; i++)  {
+			for (int i = 0; i < groundConstructions.Count; i++) {
 				point += groundConstructions[i].supportPoint;
 			}
 
@@ -489,12 +522,13 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Just a method that can wait some time before executing calculations and checks about stability.
-		protected IEnumerator StabilityCoroutine()  {
+		protected IEnumerator StabilityCoroutine() {
 
-			if(noNeedToCheckStability)
+			if (noNeedToCheckStability) {
 				yield break;
+			}
 
-			if(stabilityEdgeValue <= 0f)  {
+			if (stabilityEdgeValue <= 0f) {
 				noNeedToCheckStability = true;
 				yield break;
 			}
@@ -504,12 +538,12 @@ namespace SHUDRS.Destructibles  {
 			CalculateSupportCenter();
 
 			/// Wait for 30 frames...
-			for(int i = 0; i < 30; i++)  {
+			for (int i = 0; i < 30; i++) {
 				yield return null;
 			}
 
 			/// Perform the check and re-build fragments hierachy.
-			if(StructureIsUnstable())  {
+			if (StructureIsUnstable()) {
 				PerformDetachment();
 			}
 
@@ -517,37 +551,37 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  True, if mass point and support point are too far from each other.
-		protected bool StructureIsUnstable()  {
-			
-			if((massPoint - supportPoint).sqrMagnitude > Mathf.Pow(stabilityEdgeValue, 2f))
-				return true;
-			else
-				return false;
+		protected bool StructureIsUnstable() {
 
+			if ((massPoint - supportPoint).sqrMagnitude > Mathf.Pow(stabilityEdgeValue, 2f)) {
+				return true;
+			} else {
+				return false;
+			}
 		}
 
 
 		///  User entry point. Completely detaches Structure from the ground.
 		/// (can be accessed through interface)
-		public void PerformDetachment()  {
+		public void PerformDetachment() {
 
-			if(groundConstructions != null)  {
+			if (groundConstructions != null) {
 
-				for(int l = 0; l < groundConstructions.Count; l++)  {
+				for (int l = 0; l < groundConstructions.Count; l++) {
 
-					for(int k = 0; k < groundConstructions[l].groundElements.Count; k++)  {
+					for (int k = 0; k < groundConstructions[l].groundElements.Count; k++) {
 
-						for(int i = 0; i < groundConstructions[l].groundElements[k].groundFragments.Count; i++)  {
+						for (int i = 0; i < groundConstructions[l].groundElements[k].groundFragments.Count; i++) {
 
-							for(
-								int j = groundConstructions[l].groundElements[k].groundFragments[i].index + 1; 
-								j < groundConstructions[l].groundElements[k].len; 
+							for (
+								int j = groundConstructions[l].groundElements[k].groundFragments[i].index + 1;
+								j < groundConstructions[l].groundElements[k].len;
 								j++
-							)  {
+							) {
 
-								if(!groundConstructions[l].groundElements[k].groundFragments.Exists(
+								if (!groundConstructions[l].groundElements[k].groundFragments.Exists(
 									f => f.index == j
-								))  {
+								)) {
 
 									/// If you want to destroy some Fragments which are close to ground Fragments
 									/// which we are going to detach, uncomment the following:
@@ -588,12 +622,12 @@ namespace SHUDRS.Destructibles  {
 		}
 
 
-		#if UNITY_EDITOR
+#if UNITY_EDITOR
 		/// Displays massPoint and supportPoint as cubes for debug purposes.
-		public void OnDrawGizmos()  {
+		public void OnDrawGizmos() {
 
-			if(showStabilityGizmos)  {
-				
+			if (showStabilityGizmos) {
+
 				Gizmos.color = Color.white;
 				Gizmos.DrawWireCube(massPoint, Vector3.one * 1.5f);
 				Gizmos.color = Color.blue;
@@ -607,7 +641,7 @@ namespace SHUDRS.Destructibles  {
 			}
 
 		}
-		#endif
+#endif
 
 	}
 

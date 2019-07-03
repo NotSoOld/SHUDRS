@@ -2,14 +2,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace SHUDRS.Destructibles  {
+namespace SHUDRS.Destructibles {
 
 	///  ConstrElement is an Element-typed container for Fragments. Construction usually has a plenty of this.
 	/// If ConstrElement doesn't belong to Construction, it becomes RootElement.
-	public class ConstrElement : Element, IDestructible  {
+	public class ConstrElement : Element, IDestructible {
 
 		///  Gets called to initialize element when signal comes from construction.
-		public override void Initialize()  {
+		public override void Initialize() {
 
 			base.Initialize();
 
@@ -20,7 +20,7 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Use this for re-initialization.
-		public override void Reinitialize()  {
+		public override void Reinitialize() {
 
 			base.Reinitialize();
 
@@ -36,16 +36,17 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Creates adjacency matrix of fragments of this element, treating them like a graph.
-		public override void BuildAdjacencyMatrix(bool isInitializing = true)  {
+		public override void BuildAdjacencyMatrix(bool isInitializing = true) {
 
 			/// Initialize matrix.
 			adjMatrix = new AdjacencyMatrix(len);
 
-			if(isInitializing)  {
-				if(connections == null)
+			if (isInitializing) {
+				if (connections == null) {
 					connections = new List<Connection>();
-				else
+				} else {
 					connections.Clear();
+				}
 			}
 
 			/// For every 'vertex' (i.e. Fragment)...
@@ -54,7 +55,7 @@ namespace SHUDRS.Destructibles  {
 			Mesh tmesh;
 			Connection connection;
 
-			for(int i = 0; i < len; i++)  {
+			for (int i = 0; i < len; i++) {
 				tfrag = transform.GetChild(i);
 				tmesh = tfrag.GetComponent<MeshFilter>().sharedMesh;
 
@@ -66,19 +67,20 @@ namespace SHUDRS.Destructibles  {
 				);
 
 				/// Handle findings.
-				for(int j = 0; j < neighbours.Length; j++)  {
+				for (int j = 0; j < neighbours.Length; j++) {
 					/// If this Fragment belongs to us...
-					if(neighbours[j].GetComponent<Fragment>() != null)  {
-						if(neighbours[j].GetComponentInParent<Element>() == this)  {
+					if (neighbours[j].GetComponent<Fragment>() != null) {
+						if (neighbours[j].GetComponentInParent<Element>() == this) {
 							adjMatrix[i, neighbours[j].GetComponent<Fragment>().index] = true;
 						}
 						/// If we mean to have neighbour elements...
-						else  {
-							if(isInitializing)  {
+						else {
+							if (isInitializing) {
 								/// Build some connection relations.
 								connection = new Connection();
 								connection.fragment1 = transform.GetChild(i).GetComponent<Fragment>();
 								connection.fragment2 = neighbours[j].GetComponent<Fragment>();
+								Debug.Log("New connection with fragment1 = " + connection.fragment1.name + ", fragment2 = " + connection.fragment2.name);
 								connections.Add(connection);
 							}
 						}
@@ -89,30 +91,35 @@ namespace SHUDRS.Destructibles  {
 				adjMatrix[i, i] = false;
 			}
 
-		} 
+		}
 
 
 		///  Erases destroyed Fragment from matrix.
-		public override void MarkFragmentAsDestroyed(int findex)  {
+		public override void MarkFragmentAsDestroyed(int findex) {
 
 			base.MarkFragmentAsDestroyed(findex);
 
 			/// If it was one of connection Fragments, delete all connections with it from list.
-			for(int i = 0; i < connections.Count; i++)  {
-				if(connections[i].fragment1.index == findex)  {
+			for (int i = 0; i < connections.Count; i++) {
+				if (
+					connections[i].fragment1.index == findex &&
+					connections[i].fragment2.element != null &&
+					connections[i].fragment2.element.connections != null
+				) {
 					int ind = connections[i].fragment2.element.connections.FindIndex(
 						c => c.fragment2.element == this && c.fragment2.index == findex
 					);
-					if(ind != -1)
+					if (ind != -1) {
 						connections[i].fragment2.element.connections.RemoveAt(ind);
+					}
 
-					if(connections[i].fragment2.element.connections.Count == 0)  {
+					if (connections[i].fragment2.element.connections.Count == 0) {
 						/// Cast .element2 to RootElement.
 						RootElement re = CastFromConstrToRootElement(connections[i].fragment2.element.transform);
 						re.Reinitialize();
 
 						re.rb = re.GetComponent<Rigidbody>();
-						if(re.groundFragments == null || re.groundFragments.Count == 0)  {
+						if (re.groundFragments == null || re.groundFragments.Count == 0) {
 							re.rb.velocity = GetComponentInParent<Rigidbody>().velocity;
 							re.rb.isKinematic = false;
 							re.rb.WakeUp();
@@ -132,7 +139,7 @@ namespace SHUDRS.Destructibles  {
 
 
 		/// General entry point for checking existing connection groups of fragments.
-		protected override void CheckConnectionsInElement()  {
+		protected override void CheckConnectionsInElement() {
 
 			Transform newElement;
 			Element elemscript;
@@ -149,51 +156,53 @@ namespace SHUDRS.Destructibles  {
 			construction.SwitchRenderers();
 
 			/// If we're grounded (not divided in the air)...
-			if(groundFragments != null)  {
+			if (groundFragments != null) {
 				/// We are trying to visit all fragments from ground points.
 				int i = groundFragments.Count - 1;
-				while(i >= 0)  {
+				while (i >= 0) {
 
 					isTempVisited = new bool[len];
 
 					/// If groundFragment is present and was not visited in previous iterations...
-					if(!isVisited[groundFragments[i].index])
+					if (!isVisited[groundFragments[i].index]) {
 						CheckConnections(groundFragments[i].index);
+					}
 
 					allAreVisited = true;
 					someoneWasVisited = false;
-					for(int j = 0; j < len; j++)  {
-						allAreVisited &= isVisited[j]; 
+					for (int j = 0; j < len; j++) {
+						allAreVisited &= isVisited[j];
 						someoneWasVisited |= isTempVisited[j];
 					}
 
-					if(allAreVisited)  {
+					if (allAreVisited) {
 						/// If only we are present in construction:
-						if(
-							construction.GetComponentsInChildren<Element>().Length == 1 && 
+						if (
+							construction.GetComponentsInChildren<Element>().Length == 1 &&
 							GetComponentsInChildren<Fragment>(false).Length == 0
-						)  {
+						) {
 							Destroy(construction.gameObject);
 						}
 
 						/// Get rid of buggy empty Elements.
-						if(GetComponentsInChildren<Fragment>(false).Length == 0)
+						if (GetComponentsInChildren<Fragment>(false).Length == 0) {
 							Destroy(this.gameObject);
+						}
 
 						/// If firstTime, nothing really happens, element is still whole
 						/// and we don't need to change anything. In other cases, re-initialize (for safety).
-						if(!firstTime)  {
+						if (!firstTime) {
 							Reinitialize();
 						}
-						if(smthChanged)
+						if (smthChanged) {
 							construction.connectionsFlag = true;
+						}
 
 						return;
-					}
-					else  {
+					} else {
 						/// There may be cases when we didn't fire CheckConnections() method above,
 						/// but still getting there, so we check if there was graph bypass.
-						if(someoneWasVisited)  {
+						if (someoneWasVisited) {
 							/// Create new grounded element with found fragments.
 							newElement = new GameObject(
 								"New Element", typeof(ConstrElement)
@@ -203,20 +212,20 @@ namespace SHUDRS.Destructibles  {
 							elemscript.groundFragments = new List<Fragment>();
 							bool isRoot = true;
 
-							for(int k = 0; k < len; k++)  {
-								if(isTempVisited[k])  {
+							for (int k = 0; k < len; k++) {
+								if (isTempVisited[k]) {
 									fragments[k].transform.SetParent(newElement);
 									/// Handle ground connections.
-									if(groundFragments.Exists(f => f.index == fragments[k].index))  {
+									if (groundFragments.Exists(f => f.index == fragments[k].index)) {
 										elemscript.groundFragments.Add(fragments[k]);
 										groundFragments.Remove(fragments[k]);
 										i--;
 									}
 									/// Handle frag-to-frag connections.
-									for(int l = connections.Count - 1; l >= 0; l--)  {
+									for (int l = connections.Count - 1; l >= 0; l--) {
 										/// If this Fragment belonged to us but now it is part of newElement...
-										if(connections[l].fragment1 == fragments[k])  {
-											
+										if (connections[l].fragment1 == fragments[k]) {
+
 											elemscript.connections.Add(connections[l]);
 											connections.RemoveAt(l);
 											isRoot = false;
@@ -227,7 +236,7 @@ namespace SHUDRS.Destructibles  {
 							}
 
 							/// If we don't reassign any connection, this element is now floating.
-							if(isRoot)  {
+							if (isRoot) {
 								/// Cast to RootElement and reinitialize.
 								re = CastFromConstrToRootElement(newElement);
 								re.groundFragments = new List<Fragment>();
@@ -235,7 +244,7 @@ namespace SHUDRS.Destructibles  {
 								re.Reinitialize();
 
 								re.rb = re.GetComponent<Rigidbody>();
-								if(re.groundFragments == null || re.groundFragments.Count == 0)  {
+								if (re.groundFragments == null || re.groundFragments.Count == 0) {
 									re.rb.velocity = GetComponentInParent<Rigidbody>().velocity;
 									re.rb.isKinematic = false;
 									re.rb.WakeUp();
@@ -243,8 +252,7 @@ namespace SHUDRS.Destructibles  {
 								re.rb.ResetCenterOfMass();
 
 								Destroy(newElement.gameObject);
-							}
-							else  {
+							} else {
 								/// Else attach us [back] to construction.
 								newElement.SetParent(construction.transform);
 								newElement.SetAsLastSibling();
@@ -262,8 +270,8 @@ namespace SHUDRS.Destructibles  {
 
 			/// Note: we came here only if there are remaining spare fragments w/o ground points.
 			/// Now we check remaining fragments (which we didn't find going from ground points).
-			for(int i = 0; i < len; i++)  {
-				if(!isVisited[i])  {
+			for (int i = 0; i < len; i++) {
+				if (!isVisited[i]) {
 					/// Found another spare fragment. Check its connections:
 					isTempVisited = new bool[len];
 					CheckConnections(fragments[i].index);
@@ -271,21 +279,20 @@ namespace SHUDRS.Destructibles  {
 					/// After graph bypassing:
 					allAreVisited = true;
 					someoneWasVisited = false;
-					for(int j = 0; j < len; j++)  {
-						allAreVisited &= isVisited[j]; 
+					for (int j = 0; j < len; j++) {
+						allAreVisited &= isVisited[j];
 						someoneWasVisited |= isTempVisited[j];
 					}
-					if(allAreVisited)  {
+					if (allAreVisited) {
 						/// Maybe this condition is not needed... Just in case, okay?
-						if(someoneWasVisited)  {
+						if (someoneWasVisited) {
 							/// Re-new this Element (because these fragments were the last ones).
 							Reinitialize();
 						}
 						break;
-					}
-					else  {
+					} else {
 						/// And this also... But let it be, let it be~...
-						if(someoneWasVisited)  {
+						if (someoneWasVisited) {
 							/// Someone's remaining; after creating an Element, search again.
 							newElement = new GameObject(
 								"New Element", typeof(ConstrElement)
@@ -295,19 +302,19 @@ namespace SHUDRS.Destructibles  {
 							elemscript.groundFragments = new List<Fragment>();
 							bool isRoot = true;
 
-							for(int k = 0; k < len; k++)  {
-								if(isTempVisited[k])  {
+							for (int k = 0; k < len; k++) {
+								if (isTempVisited[k]) {
 									fragments[k].transform.SetParent(newElement);
 
-									if(groundFragments.Exists(f => f.index == fragments[k].index))  {
+									if (groundFragments.Exists(f => f.index == fragments[k].index)) {
 										elemscript.groundFragments.Add(fragments[k]);
 										groundFragments.Remove(fragments[k]);
 									}
 
-									for(int l = connections.Count - 1; l >= 0; l--)  {
+									for (int l = connections.Count - 1; l >= 0; l--) {
 										/// If this fragment belonged to us but now it is part of newElement...
-										if(connections[l].fragment1 == fragments[k])  {
-											
+										if (connections[l].fragment1 == fragments[k]) {
+
 											elemscript.connections.Add(connections[l]);
 											connections.RemoveAt(l);
 											isRoot = false;
@@ -318,7 +325,7 @@ namespace SHUDRS.Destructibles  {
 							}
 
 							/// If we don't reassign any connection, newElement is now floating.
-							if(isRoot)  {
+							if (isRoot) {
 								/// Cast to RootElement and reinitialize.
 								re = CastFromConstrToRootElement(newElement);
 								re.groundFragments = new List<Fragment>();
@@ -326,7 +333,7 @@ namespace SHUDRS.Destructibles  {
 								re.Reinitialize();
 
 								re.rb = re.GetComponent<Rigidbody>();
-								if(re.groundFragments == null || re.groundFragments.Count == 0)  {
+								if (re.groundFragments == null || re.groundFragments.Count == 0) {
 									re.rb.velocity = GetComponentInParent<Rigidbody>().velocity;
 									re.rb.isKinematic = false;
 									re.rb.WakeUp();
@@ -334,8 +341,7 @@ namespace SHUDRS.Destructibles  {
 								re.rb.ResetCenterOfMass();
 
 								Destroy(newElement.gameObject);
-							}
-							else  {
+							} else {
 								/// Else attach us [back] to construction.
 								newElement.SetParent(construction.transform);
 								newElement.SetAsLastSibling();
@@ -347,17 +353,17 @@ namespace SHUDRS.Destructibles  {
 			}
 
 			/// Maybe we are floating now too?
-			if(connections.Count == 0)  {
+			if (connections.Count == 0) {
 				/// Cast to RootElement and reinitialize.
 				re = CastFromConstrToRootElement(transform);
-				if(groundFragments != null && groundFragments.Count != 0)  {
+				if (groundFragments != null && groundFragments.Count != 0) {
 					re.groundFragments = new List<Fragment>();
 					re.groundFragments.AddRange(groundFragments);
 				}
 				re.Reinitialize();
 
 				re.rb = re.GetComponent<Rigidbody>();
-				if(re.groundFragments == null || re.groundFragments.Count == 0)  {
+				if (re.groundFragments == null || re.groundFragments.Count == 0) {
 					re.rb.velocity = GetComponentInParent<Rigidbody>().velocity;
 					re.rb.isKinematic = false;
 					re.rb.WakeUp();
@@ -371,21 +377,22 @@ namespace SHUDRS.Destructibles  {
 			construction.connectionsFlag = true;
 
 			/// Some clean-ups.
-			if(GetComponentsInChildren<Fragment>(false).Length == 0)
+			if (GetComponentsInChildren<Fragment>(false).Length == 0) {
 				Destroy(this.gameObject);
-
+			}
 		}
 
 
 		/// Casts from ConstrElement to RootElement.
-		public RootElement CastFromConstrToRootElement(Transform constrElementToCast)  {
-			
+		public RootElement CastFromConstrToRootElement(Transform constrElementToCast) {
+
 			RootElement newRootElement = new GameObject(
 				"RootElement", typeof(RootElement), typeof(Rigidbody)
 			).GetComponent<RootElement>();
-			for(int i = constrElementToCast.transform.childCount - 1; i >= 0; i--)  {
-				if(constrElementToCast.transform.GetChild(i).gameObject.activeSelf)
+			for (int i = constrElementToCast.transform.childCount - 1; i >= 0; i--) {
+				if (constrElementToCast.transform.GetChild(i).gameObject.activeSelf) {
 					constrElementToCast.transform.GetChild(i).SetParent(newRootElement.transform);
+				}
 			}
 			/// It must be so by default.
 			newRootElement.GetComponent<Rigidbody>().isKinematic = true;

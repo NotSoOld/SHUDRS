@@ -2,24 +2,34 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace SHUDRS.Destructibles  {
+namespace SHUDRS.Destructibles {
 
 	///  A Destructible with type of a Construction which doesn't belong to any Structure.
 	[RequireComponent(typeof(FragmentationSettings))]
-	public class RootConstruction : Construction, IDestructible, IRootDestructible  {
+	public class RootConstruction : Construction, IDestructible, IRootDestructible {
 
 
 		/// Rigidbody magnitude saved from last fixed frame.
 		protected float lastMagnitude;
 
 		/// Absolute delta between lastMagnitude and current magnitude.
-		public float deltaMagnitude  { get; set; }
+		public float deltaMagnitude { get; set; }
+
+
+		///  All Destructibles need Time Manager to work. If we don't have one - create it.
+		public void Awake() {
+
+			if (GameObject.FindObjectsOfType<TimeManager>().Length == 0) {
+				new GameObject("Time Manager", typeof(TimeManager));
+			}
+
+		}
 
 
 		///  Calculates delta and last velocity every physical frame.
-		public void FixedUpdate()  {
+		public void FixedUpdate() {
 
-			if(rb != null)  {
+			if (rb != null) {
 				deltaMagnitude = Mathf.Abs(rb.velocity.sqrMagnitude - lastMagnitude);
 				lastMagnitude = rb.velocity.sqrMagnitude;
 			}
@@ -27,18 +37,29 @@ namespace SHUDRS.Destructibles  {
 		}
 
 
-		///  All Destructibles need Time Manager to work. If we don't have one - create it.
-		public void Awake()  {
+		///  Since we cannot track collisions in particular Fragments (because of dumb PhysX manners...),
+		/// and all collisions are tracked by object who has Rigidbody (not colliders),
+		/// this method is needed to distribute collision events between Fragments.
+		public void OnCollisionEnter(Collision col) {
 
-			if(GameObject.FindObjectsOfType<TimeManager>().Length == 0)  {
-				new GameObject("Time Manager", typeof(TimeManager));
+			/// Make a list of all our colliders that were being touched.
+			List<Collider> frags = new List<Collider>();
+			foreach (ContactPoint point in col.contacts) {
+				if (!frags.Contains(point.thisCollider)) {
+					frags.Add(point.thisCollider);
+				}
+			}
+			for (int i = 0; i < frags.Count; i++) {
+				if (frags[i].GetComponent<Fragment>()) {
+					frags[i].GetComponent<Fragment>().OnCollisionInRoot(col);
+				}
 			}
 
 		}
 
 
 		///  Use this for initialization (only for inside-inspector usage!).
-		public void Initialize()  {
+		public void Initialize() {
 
 			InitCreateScripts();
 			InitInfo();
@@ -50,11 +71,12 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  General entry point for checking existing connection groups of elements.
-		protected override void CheckConnectionsInConstruction()  {
+		protected override void CheckConnectionsInConstruction() {
 
 			/// Some clean-up.
-			if(GetComponentsInChildren<Element>(false).Length == 0)
+			if (GetComponentsInChildren<Element>(false).Length == 0) {
 				Destroy(this.gameObject);
+			}
 
 			/// Refresh data.
 			Reinitialize();
@@ -69,33 +91,35 @@ namespace SHUDRS.Destructibles  {
 			bool firstTime = true;
 
 			/// If we're grounded (not divided in the air)...
-			if(groundElements != null)  {
+			if (groundElements != null) {
 				/// We are trying to visit all elements from grounded ones.
-				for(int i = 0; i < groundElements.Count; i++)  {
+				for (int i = 0; i < groundElements.Count; i++) {
 					isTempVisited = new bool[len];
 
 					/// If groundElement was not visited in previous iterations...
-					if(!isVisited[groundElements[i].index])
+					if (!isVisited[groundElements[i].index]) {
 						CheckConnections(groundElements[i].index);
+					}
 
 					allAreVisited = true;
 					someoneWasVisited = false;
-					for(int j = 0; j < len; j++)  {
-						allAreVisited &= isVisited[j]; 
+					for (int j = 0; j < len; j++) {
+						allAreVisited &= isVisited[j];
 						someoneWasVisited |= isTempVisited[j];
 					}
 
-					if(allAreVisited)  {
+					if (allAreVisited) {
 
 						/// Some clean-ups.
-						if(GetComponentsInChildren<Element>().Length == 0)
+						if (GetComponentsInChildren<Element>().Length == 0) {
 							Destroy(this.gameObject);
+						}
 
 						/// If firstTime, nothing really happens, Construction is still whole
 						/// and we don't need to change anything. In other cases, re-initialize (for safety).
-						if(!firstTime)  {
+						if (!firstTime) {
 							Reinitialize();
-							if(groundElements == null || groundElements.Count == 0)  {
+							if (groundElements == null || groundElements.Count == 0) {
 								rb.isKinematic = false;
 								rb.WakeUp();
 							}
@@ -103,18 +127,18 @@ namespace SHUDRS.Destructibles  {
 						rb.ResetCenterOfMass();
 						return;
 
-					}
-					else  {
+					} else {
 						/// There may be cases when we didn't fire CheckConnections() method above,
 						/// but still getting there, so we check if there was graph bypass.
-						if(someoneWasVisited)  {
+						if (someoneWasVisited) {
 							/// Create new grounded construction with founded elements.
 							newConstruction = new GameObject(
 								"New Construction", typeof(RootConstruction), typeof(Rigidbody)
 							).transform;
-							for(int k = 0; k < len; k++)  {
-								if(isTempVisited[k])
+							for (int k = 0; k < len; k++) {
+								if (isTempVisited[k]) {
 									elements[k].transform.SetParent(newConstruction);
+								}
 							}
 							newConstrScript = newConstruction.GetComponent<Construction>();
 							newConstrScript.rb = newConstruction.GetComponent<Rigidbody>();
@@ -130,8 +154,8 @@ namespace SHUDRS.Destructibles  {
 
 			/// Note: we came here only if there are remaining spare elements w/o ground points.
 			/// Now we check remaining elements (which we didn't find going from ground points).
-			for(int i = 0; i < len; i++)  {
-				if(!isVisited[i])  {
+			for (int i = 0; i < len; i++) {
+				if (!isVisited[i]) {
 					/// Found another spare element. Check its connections:
 					isTempVisited = new bool[len];
 					CheckConnections(elements[i].index);
@@ -139,33 +163,33 @@ namespace SHUDRS.Destructibles  {
 					/// After graph bypassing:
 					allAreVisited = true;
 					someoneWasVisited = false;
-					for(int j = 0; j < len; j++)  {
-						allAreVisited &= isVisited[j]; 
+					for (int j = 0; j < len; j++) {
+						allAreVisited &= isVisited[j];
 						someoneWasVisited |= isTempVisited[j];
 					}
-					if(allAreVisited)  {
+					if (allAreVisited) {
 						/// Maybe this condition is not needed... Just in case, okay?
-						if(someoneWasVisited)  {
+						if (someoneWasVisited) {
 							/// Re-new this Construction (because these elements were the last ones).
 							Reinitialize();
-							if(groundElements == null || groundElements.Count == 0)  {
+							if (groundElements == null || groundElements.Count == 0) {
 								rb.isKinematic = false;
 								rb.WakeUp();
 							}
 							rb.ResetCenterOfMass();
 						}
 						break;
-					}
-					else  {
+					} else {
 						/// And this also... But let it be, let it be~...
-						if(someoneWasVisited)  {
+						if (someoneWasVisited) {
 							/// Someone's remaining; after creating a Construction, search again.
 							newConstruction = new GameObject(
 								"New Construction", typeof(RootConstruction), typeof(Rigidbody)
 							).transform;
-							for(int k = 0; k < len; k++)  {
-								if(isTempVisited[k])
+							for (int k = 0; k < len; k++) {
+								if (isTempVisited[k]) {
 									elements[k].transform.SetParent(newConstruction);
+								}
 							}
 
 							newConstrScript = newConstruction.GetComponent<Construction>();
@@ -181,9 +205,9 @@ namespace SHUDRS.Destructibles  {
 			}
 
 			/// Some clean-ups.
-			if(GetComponentsInChildren<Element>().Length == 0)
+			if (GetComponentsInChildren<Element>().Length == 0) {
 				Destroy(this.gameObject);
-
+			}
 		}
 
 

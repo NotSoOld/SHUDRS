@@ -12,8 +12,9 @@ namespace SHUDRS.Destructibles  {
 		protected override void CheckConnectionsInConstruction()  {
 
 			/// Some clean-up.
-			if(GetComponentsInChildren<Element>(false).Length == 0)
+			if(GetComponentsInChildren<Element>(false).Length == 0) {
 				Destroy(this.gameObject);
+			}
 
 			/// Refresh data.
 			Reinitialize();
@@ -34,8 +35,9 @@ namespace SHUDRS.Destructibles  {
 					isTempVisited = new bool[len];
 
 					/// If groundElement was not visited in previous iterations...
-					if(!isVisited[groundElements[i].index])
+					if(!isVisited[groundElements[i].index]) {
 						CheckConnections(groundElements[i].index);
+					}
 
 					allAreVisited = true;
 					someoneWasVisited = false;
@@ -47,12 +49,13 @@ namespace SHUDRS.Destructibles  {
 					if(allAreVisited)  {
 
 						/// Some clean-ups.
-						if(GetComponentsInChildren<Element>().Length == 0)
+						if(GetComponentsInChildren<Element>().Length == 0) {
 							Destroy(this.gameObject);
+						}
 
 						/// If firstTime, nothing really happens, Construction is still whole
 						/// and we don't need to change anything. In other cases, re-initialize (for safety).
-						if(!firstTime)  {
+						if (!firstTime)  {
 							Reinitialize();
 							structure.connectionsFlag = true;
 						}
@@ -81,12 +84,14 @@ namespace SHUDRS.Destructibles  {
 							for(int k = 0; k < len; k++)  {
 								if(isTempVisited[k])  {
 									elements[k].connections.ForEach(c => {
-										if(c.fragment1.element.construction != c.fragment2.element.construction)
+										if(c.fragment1.element.construction != c.fragment2.element.construction) {
 											isRoot = false;
 										}
+									}
 									);
-									if(!isRoot)
+									if(!isRoot) {
 										break;
+									}
 								}
 							}
 
@@ -162,12 +167,14 @@ namespace SHUDRS.Destructibles  {
 							for(int k = 0; k < len; k++)  {
 								if(isTempVisited[k])  {
 									elements[k].connections.ForEach(c => {
-										if(c.fragment1.element.construction != c.fragment2.element.construction)
+										if(c.fragment1.element.construction != c.fragment2.element.construction) {
 											isRoot = false;
 										}
+									}
 									);
-									if(!isRoot)
+									if(!isRoot) {
 										break;
+									}
 								}
 							}
 
@@ -202,21 +209,26 @@ namespace SHUDRS.Destructibles  {
 			/// Maybe we are floating now too?
 			bool isFloating = true;
 			for(int k = 0; k < transform.childCount; k++)  {
-				if(transform.GetChild(k).GetComponent<Element>())
+				if(transform.GetChild(k).GetComponent<Element>()) {
 					transform.GetChild(k).GetComponent<Element>().connections.ForEach(c => {
-						if(c.fragment1.element.construction != c.fragment2.element.construction)
-							isFloating = false;
-						}
+						if(c.fragment1.element.construction != c.fragment2.element.construction) {
+		isFloating = false;
+	}
+}
 					);
-				if(!isFloating)
+				}
+
+				if (!isFloating) {
 					break;
+				}
 			}
 
 			if(isFloating)  {
 
 				/// Some clean-ups.
-				if(GetComponentsInChildren<Element>().Length == 0)
+				if(GetComponentsInChildren<Element>().Length == 0) {
 					Destroy(this.gameObject);
+				}
 
 				/// Cast to RootElement and reinitialize.
 				RootConstruction rc = CastFromStructToRootConstruction(transform);
@@ -237,9 +249,9 @@ namespace SHUDRS.Destructibles  {
 			structure.connectionsFlag = true;
 
 			/// Some clean-ups.
-			if(GetComponentsInChildren<Element>().Length == 0)
+			if(GetComponentsInChildren<Element>().Length == 0) {
 				Destroy(this.gameObject);
-
+			}
 		}
 
 
@@ -250,8 +262,9 @@ namespace SHUDRS.Destructibles  {
 				"Root Construction", typeof(RootConstruction), typeof(Rigidbody)
 			).GetComponent<RootConstruction>();
 			for(int i = structConstructionToCast.transform.childCount - 1; i >= 0; i--)  {
-				if(structConstructionToCast.transform.GetChild(i).gameObject.activeSelf)
+				if(structConstructionToCast.transform.GetChild(i).gameObject.activeSelf) {
 					structConstructionToCast.transform.GetChild(i).SetParent(newRootConstruction.transform);
+				}
 			}
 			/// It must be so by default.
 			newRootConstruction.GetComponent<Rigidbody>().isKinematic = true;

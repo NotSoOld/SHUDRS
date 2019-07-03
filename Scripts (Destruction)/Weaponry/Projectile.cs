@@ -111,10 +111,11 @@ namespace SHUDRS.Weaponry  {
 				case ImpactType.Point:  {
 
 						Fragment frag = hit.collider.GetComponent<Fragment>();
-						if(frag.isIndestructible)
-							return;
-						
-						frag.SpawnDirectionalDebris(frag.transform.position - transform.position, velocity);
+						if(frag.isIndestructible) {
+								return;
+							}
+
+							frag.SpawnDirectionalDebris(frag.transform.position - transform.position, velocity);
 						frag.DestroyFragment();
 
 						break;
@@ -130,9 +131,11 @@ namespace SHUDRS.Weaponry  {
 						frags = Physics.OverlapSphere(hit.point, innerRadius);
 						for(int i = 0; i < frags.Length; i++)  {
 							frag = frags[i].GetComponent<Fragment>();
-							if(frag == null || frag.isIndestructible)
-								continue;
-							frag.SpawnDirectionalDebris(frag.transform.position - transform.position, velocity);
+							if(frag == null || frag.isIndestructible) {
+									continue;
+								}
+
+								frag.SpawnDirectionalDebris(frag.transform.position - transform.position, velocity);
 							frag.DestroyFragment();
 						}
 
@@ -149,9 +152,11 @@ namespace SHUDRS.Weaponry  {
 						frags = Physics.OverlapSphere(hit.point, outerRadius);
 						for(int i = 0; i < frags.Length; i++)  {
 							frag = frags[i].GetComponent<Fragment>();
-							if(frag == null || frag.isIndestructible)
-								continue;
-							frag.DestroyFragment(true);
+							if(frag == null || frag.isIndestructible) {
+									continue;
+								}
+
+								frag.DestroyFragment(true);
 						}
 
 						break;
@@ -167,9 +172,11 @@ namespace SHUDRS.Weaponry  {
 						frags = Physics.OverlapSphere(hit.point, innerRadius);
 						for(int i = 0; i < frags.Length; i++)  {
 							frag = frags[i].GetComponent<Fragment>();
-							if(frag == null || frag.isIndestructible)
-								continue;
-							frag.SpawnDirectionalDebris(frag.transform.position - transform.position, velocity);
+							if(frag == null || frag.isIndestructible) {
+									continue;
+								}
+
+								frag.SpawnDirectionalDebris(frag.transform.position - transform.position, velocity);
 							frag.DestroyFragment();
 						}
 
@@ -179,9 +186,11 @@ namespace SHUDRS.Weaponry  {
 							/// Note: we don't want to manage inner radius Fragments here 
 							/// (they will be already marked as destroyed).
 							frag = frags[i].GetComponent<Fragment>();
-							if(frag == null || frag.isDestroyed || frag.isIndestructible)
-								continue;
-							frag.DestroyFragment(true);
+							if(frag == null || frag.isDestroyed || frag.isIndestructible) {
+									continue;
+								}
+
+								frag.DestroyFragment(true);
 						}
 
 						break;

@@ -2,12 +2,12 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace SHUDRS.Destructibles  {
-	
+namespace SHUDRS.Destructibles {
+
 	///  Element is too big to be a Fragment, so it consists of Fragments.
 	/// There are Root Elements (which live their own happy life of Destructible :D) and Constr(uction)
 	/// Elements, which are the part of Construction.
-	public abstract class Element : MonoBehaviour, IDestructible  {
+	public abstract class Element : MonoBehaviour, IDestructible {
 
 		/// The unique index of this Element.
 		public int index;
@@ -19,7 +19,9 @@ namespace SHUDRS.Destructibles  {
 		public AdjacencyMatrix adjMatrix;
 
 		/// Flag; if true, connections check is needed.
-		public bool connectionsFlag;
+		public bool connectionsFlag {
+			get;
+			set; }
 
 		/// Our cached root Construction.
 		public Construction construction;
@@ -63,7 +65,7 @@ namespace SHUDRS.Destructibles  {
 		/// Internal bool to store condition when we do not need, can't or not allowed to calculate stability
 		/// values and check stability. 
 		/// If you want to disable stability checks, set 'stabilityEdgeValue' <= 0.
-		public bool noNeedToCheckStability  { get; protected set; }
+		public bool noNeedToCheckStability { get; protected set; }
 
 		/// Should we use this Element Renderer component instead of all Fragments' Renderers 
 		/// if we're still whole (for perfomance reason)?
@@ -74,7 +76,7 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Adds this Element to Update event at the start of lifetime.
-		public void Start()  {
+		public void Start() {
 
 			TimeManager.UpdateElements += UpdateElement;
 
@@ -82,22 +84,22 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Removes this Element from Update event at the end of lifetime.
-		public void OnDestroy()  {
-			
+		public void OnDestroy() {
+
 			TimeManager.UpdateElements -= UpdateElement;
 
 		}
 
 
 		///  Use this for initialization.
-		public virtual void Initialize()  {
+		public virtual void Initialize() {
 
 			/// Remove results of previous initialization.
 			Cleanup();
 
 			/// Add Fragment script to children.
 			Fragment tfrag;
-			for(int i = 0; i < transform.childCount; i++)  {
+			for (int i = 0; i < transform.childCount; i++) {
 				tfrag = transform.GetChild(i).gameObject.AddComponent<Fragment>();
 				tfrag.Initialize();
 			}
@@ -105,24 +107,27 @@ namespace SHUDRS.Destructibles  {
 			/// Get array of this element' fragments.
 			fragments = GetComponentsInChildren<Fragment>();
 			len = fragments.Length;
-			#if UNITY_EDITOR
-			if(len > 100)
+#if UNITY_EDITOR
+			if (len > 100) {
 				Debug.LogWarning(
-					"Element "+this.name+" has more than 100 fragments.\n" +
+					"Element " + this.name + " has more than 100 fragments.\n" +
 					"Note that extremely big elements may lead to performance issues."
 				);
-			#endif
+			}
+#endif
 			isDestroyed = new bool[len];
 
 		}
 
 
 		///  Use this for re-initialization.
-		public virtual void Reinitialize()  {
+		public virtual void Reinitialize() {
 
 			/// Some clean-ups.
-			if(GetComponentsInChildren<Fragment>(false).Length == 0)
+			if (GetComponentsInChildren<Fragment>(false).Length == 0) {
 				Destroy(this.gameObject);
+			}
+
 			connectionsFlag = false;
 
 			/// Get array of this element' Fragments.
@@ -131,7 +136,7 @@ namespace SHUDRS.Destructibles  {
 			isDestroyed = new bool[len];
 
 			/// Assign unique indexes to child Fragments.
-			for(int i = 0; i < len; i++)  {
+			for (int i = 0; i < len; i++) {
 				fragments[i].Reinitialize();
 			}
 
@@ -139,32 +144,34 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Use this to undo initialization of Fragments.
-		public void Cleanup()  {
+		public void Cleanup() {
 
-			for(int i = 0; i < transform.childCount; i++)  {
+			for (int i = 0; i < transform.childCount; i++) {
 
-				if(transform.GetChild(i).GetComponent<Fragment>())
+				if (transform.GetChild(i).GetComponent<Fragment>()) {
 					DestroyImmediate(transform.GetChild(i).GetComponent<Fragment>());
+				}
 
-				if(transform.GetChild(i).GetComponent<MeshCollider>())
+				if (transform.GetChild(i).GetComponent<MeshCollider>()) {
 					DestroyImmediate(transform.GetChild(i).GetComponent<MeshCollider>());
-
+				}
 			}
 
-			if(GetComponent<Rigidbody>())
+			if (GetComponent<Rigidbody>()) {
 				DestroyImmediate(GetComponent<Rigidbody>());
-			
+			}
 		}
 
 
 		///  Is subscribed to an event and executes in the LateUpdate at frame 1.
-		public void UpdateElement()  {
-			
-			if(connectionsFlag)  {
+		public void UpdateElement() {
 
-				/// Entry point for checking and dividing Element into physical pieces.
-				CheckConnectionsInElement();
+			if (connectionsFlag) {
+
 				connectionsFlag = false;
+				/// Entry point for checking and dividing Element into physical pieces.
+				Debug.Log(this.name + " UpdateElement invoke");
+				CheckConnectionsInElement();
 
 			}
 
@@ -173,24 +180,26 @@ namespace SHUDRS.Destructibles  {
 
 		///  For perfomance reasons we can have entire Element renderer enabled by default, and if some Fragment
 		/// gets destroyed, we disable Element renderer and enable Fragments' renderers.
-		public void SwitchRenderers()  {
+		public void SwitchRenderers() {
 
 			/// If we done this already (or do not need to do this by default) - return.
-			if(!useRenderersSwitch)
+			if (!useRenderersSwitch) {
 				return;
+			}
 
 			/// If we allowed to do it, but there's no mesh to display - return.
-			if(GetComponent<MeshFilter>() == null || GetComponent<MeshRenderer>() == null)  {
+			if (GetComponent<MeshFilter>() == null || GetComponent<MeshRenderer>() == null) {
 				useRenderersSwitch = false;
 				return;
 			}
-			
+
 			/// Disable Element renderer.
 			GetComponent<MeshRenderer>().enabled = false;
 
 			/// Get and enable fragments' renderers.
-			for(int i = 0; i < len; i++)
+			for (int i = 0; i < len; i++) {
 				fragments[i].GetComponent<MeshRenderer>().enabled = true;
+			}
 
 			/// So, we done this operation. Flag it!
 			useRenderersSwitch = false;
@@ -204,31 +213,32 @@ namespace SHUDRS.Destructibles  {
 
 		///  Finds Fragments that are standing on the ground 
 		/// ('ground' - objects with DestructibleBaseObject component attached).
-		public void BuildGroundFragmentsArray()  {
+		public void BuildGroundFragmentsArray() {
 
 			Transform tfrag;
 			Collider[] neighbours;
 			Mesh tmesh;
 
-			if(groundFragments == null)
+			if (groundFragments == null) {
 				groundFragments = new List<Fragment>();
-			else
+			} else {
 				groundFragments.Clear();
+			}
 
-			for(int i = 0; i < len; i++)  {
+			for (int i = 0; i < len; i++) {
 				tfrag = transform.GetChild(i);
 				tmesh = tfrag.GetComponent<MeshFilter>().sharedMesh;
 
 				/// We need to find connections with ground.
 				neighbours = Physics.OverlapBox(
-					tfrag.position, 
-					Vector3.Scale(tmesh.bounds.extents, tfrag.localScale * 1.05f),
+					tfrag.position,
+					Vector3.Scale(tmesh.bounds.extents, tfrag.localScale * 1.01f),
 					tfrag.rotation
 				);
 
 				/// Are we touching ground?
-				for(int j = 0; j < neighbours.Length; j++)  {
-					if(neighbours[j].GetComponent<DestructibleBaseObject>() != null)  {
+				for (int j = 0; j < neighbours.Length; j++) {
+					if (neighbours[j].GetComponent<DestructibleBaseObject>() != null) {
 						groundFragments.Add(fragments[i]);
 						break;
 					}
@@ -239,11 +249,11 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  For debug purposes.
-		public void ShowAdjacencyMatrix()  {
+		public void ShowAdjacencyMatrix() {
 
 			string s = "";
-			for(int i = 0; i < len; i++)  {
-				for(int j = 0; j < len; j++)  {
+			for (int i = 0; i < len; i++) {
+				for (int j = 0; j < len; j++) {
 					s += string.Format(" {0}", System.Convert.ToByte(adjMatrix[i, j]));
 				}
 				s += "\n";
@@ -254,9 +264,9 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Erases destroyed Fragment from matrix.
-		public virtual void MarkFragmentAsDestroyed(int findex)  {
+		public virtual void MarkFragmentAsDestroyed(int findex) {
 
-			for(int i = 0; i < len; i++)  {
+			for (int i = 0; i < len; i++) {
 				adjMatrix[i, findex] = false;
 				adjMatrix[findex, i] = false;
 			}
@@ -265,26 +275,30 @@ namespace SHUDRS.Destructibles  {
 			isDestroyed[findex] = true;
 
 			/// We also need to exclude this Fragment from ground Fragments (if it was here).
-			if(groundFragments != null)  {
+			if (groundFragments != null) {
 				int tempindex = groundFragments.FindIndex(f => f.index == findex);
-				if(tempindex != -1)
+				if (tempindex != -1) {
 					groundFragments.RemoveAt(tempindex);
+				}
 			}
 
 		}
 
 
 		///  General entry point for checking existing connection groups of Fragments.
-		protected abstract void CheckConnectionsInElement(); 
+		protected abstract void CheckConnectionsInElement();
 
 
 		///  Tries to recursively visit all graph vertices for Element.
-		protected void CheckConnections(int start)  {
+		protected void CheckConnections(int start) {
 
 			isVisited[start] = true;
 			isTempVisited[start] = true;
-			for(int i = 0; i < len; i++)  {
-				if(adjMatrix[start, i] && !isVisited[i])  {
+			for (int i = 0; i < len; i++) {
+				if (adjMatrix[start, i] == null) {
+					Debug.LogWarning(this.name + " Element.CheckConnections: adjMatrix element is null.");
+				}
+				if (adjMatrix[start, i].Value && !isVisited[i]) {
 					CheckConnections(i);
 				}
 			}
@@ -294,9 +308,9 @@ namespace SHUDRS.Destructibles  {
 
 		///  User entry point. Calling this will divide whole Element into particular moving Fragments.
 		/// (can be accessed through interface)
-		public void TurnIntoDestructibleWithoutConnections()  {
+		public void TurnIntoDestructibleWithoutConnections() {
 
-			for(int i = 0; i < len; i++)  {
+			for (int i = 0; i < len; i++) {
 				fragments[i].DestroyFragment(true);
 			}
 
@@ -307,10 +321,10 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Simply calculates position of mass point of this Element.
-		public void CalculateMassPoint()  {
+		public void CalculateMassPoint() {
 
 			Vector3 point = new Vector3();
-			for(int i = 0; i < len; i++)  {
+			for (int i = 0; i < len; i++) {
 				point += fragments[i].transform.position;
 			}
 			point /= len;
@@ -320,32 +334,30 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Calculates support point, summing positions of all ground and connection Fragments.
-		public void CalculateSupportPoint()  {
+		public void CalculateSupportPoint() {
 
 			Vector3 point = new Vector3();
 
-			if(groundFragments != null)  {
-				for(int i = 0; i < groundFragments.Count; i++)  {
+			if (groundFragments != null) {
+				for (int i = 0; i < groundFragments.Count; i++) {
 					point += groundFragments[i].transform.position;
 				}
 			}
 
 			int ccnt = 0;
-			if(connections != null)  {
-				for(int i = 0; i < connections.Count; i++)  {
+			if (connections != null) {
+				for (int i = 0; i < connections.Count; i++) {
 					/// We need to check if this is connection with an Element which is connected only to us.
 					/// In such case it is inefficient to take such connection into account.
-					int tempCnt = 0;
-					for(int j = 0; j < connections[i].fragment2.element.len; j++)  {
-						tempCnt += (connections[i].fragment2.element.adjMatrix[connections[i].fragment1.index, j]) ? (1) : (0);
-					}
-
-					/// If other Element isn't connected only to us OR is grounded...
-					if(
-						tempCnt > 1 || 
+					/// So, if other Element isn't connected only to us OR is grounded...
+					if (
+						(connections[i].fragment2.element.connections != null &&
+							connections[i].fragment2.element.connections.Exists(
+							c => c.fragment2.element != connections[i].fragment1.element
+						)) ||
 						(connections[i].fragment2.element.groundFragments != null &&
 						connections[i].fragment2.element.groundFragments.Count != 0)
-					)  {
+					) {
 						point += connections[i].fragment1.transform.position;
 						ccnt++;
 					}
@@ -363,29 +375,30 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Just a method that can wait some time before checking stability.
-		protected IEnumerator StabilityCoroutine()  {
+		protected IEnumerator StabilityCoroutine() {
 
 			/// Calculate stability values (even if we don't need to check stability, 
 			/// these values are still needed by parent constructions/structures).
 			CalculateMassPoint();
 			CalculateSupportPoint();
 
-			if(noNeedToCheckStability)
+			if (noNeedToCheckStability) {
 				yield break;
+			}
 
-			if(stabilityEdgeValue <= 0f)  {
+			if (stabilityEdgeValue <= 0f) {
 				noNeedToCheckStability = true;
 				yield break;
 			}
 
 			/// If we have neither ground nor connection points...
-			if((connections == null || connections.Count == 0) && (groundFragments == null || groundFragments.Count == 0))  {
+			if ((connections == null || connections.Count == 0) && (groundFragments == null || groundFragments.Count == 0)) {
 				noNeedToCheckStability = true;
 				yield break;
 			}
 
 			/// If we now consist only of ground fragments...
-			if(groundFragments.Count == fragments.Length)  {
+			if (groundFragments.Count == fragments.Length) {
 				noNeedToCheckStability = true;
 				yield break;
 			}
@@ -393,18 +406,18 @@ namespace SHUDRS.Destructibles  {
 			/// If we now consist only of connected fragments...
 			byte[] conIndexes = new byte[len];
 			connections.ForEach(c => conIndexes[c.fragment1.index] = 1);
-			if(System.Array.TrueForAll(conIndexes, ind => ind == 1))  {
+			if (System.Array.TrueForAll(conIndexes, ind => ind == 1)) {
 				noNeedToCheckStability = true;
 				yield break;
 			}
-				
+
 			/// Wait for 30 frames...
-			for(int i = 0; i < 30; i++)  {
+			for (int i = 0; i < 30; i++) {
 				yield return null;
 			}
 
 			/// Perform the check and re-build fragments hierachy.
-			if(ElementIsUnstable())  {
+			if (ElementIsUnstable()) {
 				PerformDetachment();
 				connectionsFlag = true;
 			}
@@ -413,28 +426,28 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  True, if mass point and support point are too far from each other.
-		protected bool ElementIsUnstable()  {
-			
-			if((massPoint - supportPoint).sqrMagnitude > Mathf.Pow(stabilityEdgeValue, 2f))
-				return true;
-			else
-				return false;
+		protected bool ElementIsUnstable() {
 
+			if ((massPoint - supportPoint).sqrMagnitude > Mathf.Pow(stabilityEdgeValue, 2f)) {
+				return true;
+			} else {
+				return false;
+			}
 		}
 
 
 		///  User entry point. Removes some integrity information so Element itself will be still whole
 		/// but it will break from its connection and ground fragments.
 		/// (can be accessed through interface)
-		public void PerformDetachment()  {
+		public void PerformDetachment() {
 
-			if(groundFragments != null)  {
-				
-				for(int i = 0; i < groundFragments.Count; i++)  {
-					for(int j = groundFragments[i].index + 1; j < len; j++)  {
+			if (groundFragments != null) {
+
+				for (int i = 0; i < groundFragments.Count; i++) {
+					for (int j = groundFragments[i].index + 1; j < len; j++) {
 						/// Remove connections between 'regular' and 'ground' fragments
 						/// (but not between 'ground' and 'ground' or 'regular' and 'regular' fragments).
-						if(!groundFragments.Exists(f => f.index == j))  {
+						if (!groundFragments.Exists(f => f.index == j)) {
 							adjMatrix[groundFragments[i].index, j] = false;
 							adjMatrix[j, groundFragments[i].index] = false;
 						}
@@ -444,17 +457,19 @@ namespace SHUDRS.Destructibles  {
 
 			}
 
-			if(connections != null)  {
+			if (connections != null) {
 
 				byte[] conIndexes = new byte[len];
 				connections.ForEach(c => conIndexes[c.fragment1.index] = 1);
 
-				for(int i = 0; i < len; i++)  {
-					if(conIndexes[i] == 0)
+				for (int i = 0; i < len; i++) {
+					if (conIndexes[i] == 0) {
 						continue;
-					for(int j = i + 1; j < len; j++)  {
+					}
+
+					for (int j = i + 1; j < len; j++) {
 						/// Remove connections between 'connection' and 'regular' fragments.
-						if(conIndexes[j] == 0)  {
+						if (conIndexes[j] == 0) {
 							adjMatrix[i, j] = false;
 							adjMatrix[j, i] = false;
 						}
@@ -467,11 +482,11 @@ namespace SHUDRS.Destructibles  {
 		}
 
 
-		#if UNITY_EDITOR
+#if UNITY_EDITOR
 		/// Displays massPoint and supportPoint for debug purposes.
-		public void OnDrawGizmos()  {
+		public void OnDrawGizmos() {
 
-			if(showStabilityGizmos)  {
+			if (showStabilityGizmos) {
 
 				Gizmos.color = Color.green - new Color(0f, 0f, 0f, 0.5f);
 				Gizmos.DrawSphere(massPoint, 0.2f);
@@ -486,7 +501,7 @@ namespace SHUDRS.Destructibles  {
 			}
 
 		}
-		#endif
+#endif
 
 	}
 

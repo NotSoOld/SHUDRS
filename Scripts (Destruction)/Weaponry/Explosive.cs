@@ -56,9 +56,11 @@ namespace SHUDRS.Weaponry  {
 					frags = Physics.OverlapSphere(transform.position, innerRadius);
 					for(int i = 0; i < frags.Length; i++)  {
 						frag = frags[i].GetComponent<Fragment>();
-						if(frag == null)
-							continue;
-						frag.SpawnDirectionalDebris(
+						if(frag == null) {
+								continue;
+							}
+
+							frag.SpawnDirectionalDebris(
 							frag.transform.position - transform.position, 
 							(frag.transform.position - transform.position).sqrMagnitude
 						);
@@ -78,9 +80,11 @@ namespace SHUDRS.Weaponry  {
 					frags = Physics.OverlapSphere(transform.position, outerRadius);
 					for(int i = 0; i < frags.Length; i++)  {
 						frag = frags[i].GetComponent<Fragment>();
-						if(frag == null)
-							continue;
-						frag.DestroyFragment(true);
+						if(frag == null) {
+								continue;
+							}
+
+							frag.DestroyFragment(true);
 
 						/// Add some explosion force to Fragment.
 						frag.GetComponent<Rigidbody>().AddExplosionForce(
@@ -103,9 +107,11 @@ namespace SHUDRS.Weaponry  {
 					frags = Physics.OverlapSphere(transform.position, innerRadius);
 					for(int i = 0; i < frags.Length; i++)  {
 						frag = frags[i].GetComponent<Fragment>();
-						if(frag == null)
-							continue;
-						frag.SpawnDirectionalDebris(
+						if(frag == null) {
+								continue;
+							}
+
+							frag.SpawnDirectionalDebris(
 							frag.transform.position - transform.position, 
 							(frag.transform.position - transform.position).sqrMagnitude
 						);
@@ -118,9 +124,11 @@ namespace SHUDRS.Weaponry  {
 						/// Note: we don't want to manage inner radius Fragments here 
 						/// (they will be already marked as destroyed).
 						frag = frags[i].GetComponent<Fragment>();
-						if(frag == null || frag.isDestroyed)
-							continue;
-						frag.DestroyFragment(true);
+						if(frag == null || frag.isDestroyed) {
+								continue;
+							}
+
+							frag.DestroyFragment(true);
 
 						/// Add some explosion force to Fragment.
 						frag.GetComponent<Rigidbody>().AddExplosionForce(

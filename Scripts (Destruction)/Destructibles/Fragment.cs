@@ -1,11 +1,11 @@
 ﻿using UnityEngine;
 using System.Linq;
 
-namespace SHUDRS.Destructibles  {
+namespace SHUDRS.Destructibles {
 
 	///  The smallest part of a Destructible (and the only one that is physically represented, because it has a collider).
 	[RequireComponent(typeof(MeshCollider))]
-	public class Fragment : MonoBehaviour {	
+	public class Fragment : MonoBehaviour {
 
 		/// Destroyed Fragment flag (maybe sometimes it can be useful).
 		public bool isDestroyed;
@@ -31,20 +31,20 @@ namespace SHUDRS.Destructibles  {
 		public float startHealth = 100f;
 
 		/// "Health" of the Fragment during runtime (this is visible only from code).
-		public float currenthealth;
+		public float currentHealth;
 
 
 		///  Just for some actions happened at very beginning.
-		public void Start()  {
+		public void Start() {
 
-			currenthealth = startHealth;
+			currentHealth = startHealth;
 
 		}
 
 
 		///  Use this for initialization.
-		public void Initialize()  {
-			
+		public void Initialize() {
+
 			/// Set up collider (is added automatically by [RequireComponent]).
 			GetComponent<MeshCollider>().convex = true;
 
@@ -59,7 +59,7 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Use this for re-initialization.
-		public void Reinitialize()  {
+		public void Reinitialize() {
 
 			/// Set unique index.
 			index = transform.GetSiblingIndex();
@@ -72,14 +72,17 @@ namespace SHUDRS.Destructibles  {
 
 
 		/// Returns true if object is from 'list of objects that must trigger OnCollisionEnter event'.
-		private bool ContainsTagOrNameSubstringToMove(string tag, string name)  {
+		private bool ContainsTagOrNameSubstringToMove(string tag, string name) {
 
-			if(settings.tagsToMove.Contains(tag))  {
-				return true;
+			if (settings.tagsToMove == null || settings.nameSubstringsToMove == null) {
+				return false;
 			}
-			else  {
-				for(int i = 0; i < settings.nameSubstringsToMove.Length; i++)  {
-					if(name.Contains(settings.nameSubstringsToMove[i]))  {
+
+			if (settings.tagsToMove.Contains(tag)) {
+				return true;
+			} else {
+				for (int i = 0; i < settings.nameSubstringsToMove.Length; i++) {
+					if (name.Contains(settings.nameSubstringsToMove[i])) {
 						return true;
 					}
 				}
@@ -88,28 +91,28 @@ namespace SHUDRS.Destructibles  {
 			return false;
 
 		}
-			
 
-		///  This event is triggered when: 
+
+		///  This event is triggered by root when: 
 		/// - we collide with something; 
 		/// - something collides with us; 
 		/// - other Destructible collides with us.
-		public void OnCollisionEnter(Collision other)  {
+		public void OnCollisionInRoot(Collision other) {
 
 			/// We should do this only if we are destructible Fragment.
-			if(!isIndestructible)  {
+			if (!isIndestructible) {
 
 				/// If we need to react to external collisions...
-				if(ContainsTagOrNameSubstringToMove(other.gameObject.tag, other.gameObject.name))  {
+				if (ContainsTagOrNameSubstringToMove(other.gameObject.tag, other.gameObject.name)) {
 
 					/// We are moving now. :D
 					DestroyFragment(true);
 
 				}
-					
+
 				/// We may hit something with enough velocity to break ourselves while falling.
-				if(GetComponentInParent<IRootDestructible>().deltaMagnitude > 40f)  {
-					
+				if (!isDestroyed && GetComponentInParent<IRootDestructible>().deltaMagnitude > 15f) {
+
 					DestroyFragment();
 					GetComponentInParent<Rigidbody>().velocity *= 0.8f;
 
@@ -119,8 +122,8 @@ namespace SHUDRS.Destructibles  {
 
 			/// Or something may hit us in the same conditions.
 			/// If it was another Destructible...
-			if(other.collider.GetComponentInParent<IRootDestructible>() != null)  {
-				if(other.collider.GetComponentInParent<IRootDestructible>().deltaMagnitude > 40f)  {
+			if (other.collider.GetComponentInParent<IRootDestructible>() != null) {
+				if (other.collider.GetComponentInParent<IRootDestructible>().deltaMagnitude > 15f) {
 
 					other.collider.GetComponent<Fragment>().DestroyFragment();
 					other.collider.GetComponentInParent<Rigidbody>().velocity *= 0.8f;
@@ -129,22 +132,25 @@ namespace SHUDRS.Destructibles  {
 			}
 
 		}
-			
+
 
 		///  User entry point for destroying individual fragments.
 		/// - may be called without parameters when a projectile hits this Fragment to perform
 		/// destruction; you need to manually spawn debris burst;
 		/// - may be called with a 'true' parameter when you want to move Fragments out of the Element because
 		/// of some interaction that doesn't trigger 'OnCollisionEnter' event; debris will be spawned automatically.
-		public void DestroyFragment(bool moveInsteadOfBreak = false)  {
-			
+		public void DestroyFragment(bool moveInsteadOfBreak = false) {
+
 			/// Mark us as destroyed.
 			isDestroyed = true;
 
-			/// If we supposed to move out of Element instead of breaking into debris...
-			if(moveInsteadOfBreak)  {
+			/// Send message to parent element that we need to change renderers (if we really need, element will decide it).
+			element.SwitchRenderers();
 
-				if(damagedGO != null)  {
+			/// If we supposed to move out of Element instead of breaking into debris...
+			if (moveInsteadOfBreak) {
+
+				if (damagedGO != null) {
 					GetComponent<MeshCollider>().sharedMesh = damagedGO.GetComponent<MeshFilter>().sharedMesh;
 					GetComponent<MeshFilter>().sharedMesh = damagedGO.GetComponent<MeshFilter>().sharedMesh;
 					GetComponent<MeshRenderer>().sharedMaterials = damagedGO.GetComponent<MeshRenderer>().sharedMaterials;
@@ -153,17 +159,13 @@ namespace SHUDRS.Destructibles  {
 				rb.velocity = GetComponentInParent<Rigidbody>().velocity;
 				transform.parent = null;
 				SpawnGoDownDebris();
-				
-			}
-			else  {
-				
+
+			} else {
+
 				gameObject.SetActive(false);
 				transform.SetAsLastSibling();
 
 			}
-
-			/// Send message to parent element that we need to change renderers (if we really need, element will decide it).
-			element.SwitchRenderers();
 
 			/// Correct adjacency matrix and other variables that describe our integrity.
 			element.MarkFragmentAsDestroyed(index);
@@ -179,13 +181,13 @@ namespace SHUDRS.Destructibles  {
 		///  </summary>
 		///  <param name="dir">Direction of the projectile flight at the moment of collision.</param>
 		///  <param name="speed">Speed of the projectile at the moment of collision.</param>
-		public void SpawnDirectionalDebris(Vector3 dir, float speed)  {
+		public void SpawnDirectionalDebris(Vector3 dir, float speed) {
 
-			if(settings.directionalDebris != null)  {
-				
+			if (settings.directionalDebris != null) {
+
 				ParticleSystem debris = Instantiate(
-					settings.directionalDebris, 
-					transform.position, 
+					settings.directionalDebris,
+					transform.position,
 					Quaternion.Euler(dir)
 				).GetComponent<ParticleSystem>();
 				ParticleSystem.MainModule m = debris.main;
@@ -203,13 +205,13 @@ namespace SHUDRS.Destructibles  {
 
 
 		///  Spawns bits of debris that just fall down. Useful for fragments moving out of the Element.
-		public void SpawnGoDownDebris()  {
+		public void SpawnGoDownDebris() {
 
-			if(settings.goDownDebris != null)  {
+			if (settings.goDownDebris != null) {
 
 				ParticleSystem debris = Instantiate(
-					settings.goDownDebris, 
-					transform.position, 
+					settings.goDownDebris,
+					transform.position,
 					Quaternion.identity
 				).GetComponent<ParticleSystem>();
 
@@ -222,8 +224,14 @@ namespace SHUDRS.Destructibles  {
 			}
 
 		}
-		
-	
+
+#if false
+		public void OnDrawGizmos() {
+			Gizmos.DrawCube(this.transform.position, Vector3.Scale(this.GetComponent<MeshFilter>().sharedMesh.bounds.extents, this.transform.localScale * 1.05f));
+
+		}
+#endif
+
 	}
 
 }
