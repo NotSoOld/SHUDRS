@@ -49,3 +49,5 @@ Temporary Items
 # Temp files for documentation creation
 *.docx
 *.vsdx
+
+*.meta
